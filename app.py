@@ -26,7 +26,6 @@ from langchain_community.document_loaders import YoutubeLoader
 
 # LangGraph imports
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolExecutor
 from langgraph.graph.message import add_messages
 
 # LangSmith imports

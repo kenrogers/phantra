@@ -6,6 +6,8 @@ from typing import List, Dict, Any, Optional, Annotated, Literal
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
 import random
+import requests
+from bs4 import BeautifulSoup
 
 # LangChain imports
 from langchain_core.messages import (
@@ -86,19 +88,62 @@ def count_tokens(text: str) -> int:
 def get_youtube_id(url: str) -> str:
     """Extract video ID from YouTube URL"""
     try:
-        if "youtube.com/watch?v=" in url:
-            video_id = url.split("youtube.com/watch?v=")[1].split("&")[0]
+        # Handle various YouTube URL formats
+        if "youtube.com/watch" in url and "v=" in url:
+            # Standard watch URL: https://www.youtube.com/watch?v=VIDEO_ID
+            video_id = url.split("v=")[1].split("&")[0]
         elif "youtu.be/" in url:
-            video_id = url.split("youtu.be/")[1].split("?")[0]
+            # Shortened URL: https://youtu.be/VIDEO_ID
+            video_id = url.split("youtu.be/")[1].split("?")[0].split("#")[0]
+        elif "youtube.com/embed/" in url:
+            # Embed URL: https://www.youtube.com/embed/VIDEO_ID
+            video_id = url.split(
+                "youtube.com/embed/")[1].split("?")[0].split("#")[0]
+        elif "youtube.com/v/" in url:
+            # Old embed URL: https://www.youtube.com/v/VIDEO_ID
+            video_id = url.split(
+                "youtube.com/v/")[1].split("?")[0].split("#")[0]
+        elif "youtube.com/shorts/" in url:
+            # YouTube Shorts: https://www.youtube.com/shorts/VIDEO_ID
+            video_id = url.split(
+                "youtube.com/shorts/")[1].split("?")[0].split("#")[0]
         else:
-            raise ValueError("Invalid YouTube URL format")
+            # Try direct ID if it looks like a YouTube video ID (11 characters)
+            if len(url.strip()) == 11 and all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in url.strip()):
+                return url.strip()
+            raise ValueError(f"Unsupported YouTube URL format: {url}")
 
         if not video_id:
             raise ValueError("Could not extract video ID")
 
+        # Clean up the video ID
+        video_id = video_id.strip()
+
+        # Log for debugging
+        st.write(f"Extracted YouTube ID: {video_id}")
+
         return video_id
     except Exception as e:
+        st.error(f"Failed to extract YouTube video ID: {str(e)}")
         raise ValueError(f"Failed to extract YouTube video ID: {str(e)}")
+
+
+def fetch_youtube_metadata(video_id: str) -> dict:
+    """Fetch metadata about a YouTube video as a fallback"""
+    try:
+        # Use YouTube's oEmbed API to get basic metadata
+        oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+        response = requests.get(oembed_url)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.warning(
+                f"Failed to fetch YouTube metadata: Status code {response.status_code}")
+            return {}
+    except Exception as e:
+        st.warning(f"Error fetching YouTube metadata: {str(e)}")
+        return {}
 
 
 def fetch_transcript(url: str) -> str:
@@ -107,39 +152,105 @@ def fetch_transcript(url: str) -> str:
         video_id = get_youtube_id(url)
         st.info(f"Fetching transcript for video ID: {video_id}")
 
+        # Log more details for debugging in Streamlit Cloud
+        st.write(f"YouTube URL: {url}")
+        st.write(f"Extracted Video ID: {video_id}")
+
+        transcript = ""
+        error_messages = []
+
+        # Method 1: Direct transcript API
         try:
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript = " ".join(entry["text"].strip(
+            ) for entry in transcript_list if entry["text"].strip())
+            if transcript:
+                st.success(
+                    "Successfully fetched transcript using direct method")
+                return transcript
         except Exception as e:
-            # Try getting transcript with auto-generated captions
-            try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(
-                    video_id,
-                    languages=['en-US', 'en']
-                )
-            except Exception as e2:
-                raise Exception(
-                    f"Failed to get transcript (tried both manual and auto-captions): {str(e2)}"
-                )
+            error_messages.append(f"Direct method failed: {str(e)}")
+            st.warning(f"Direct transcript method failed: {str(e)}")
 
-        if not transcript_list:
-            raise ValueError("Empty transcript returned")
+        # Method 2: Try with language specification
+        try:
+            transcript_list = YouTubeTranscriptApi.get_transcript(
+                video_id, languages=['en-US', 'en'])
+            transcript = " ".join(entry["text"].strip(
+            ) for entry in transcript_list if entry["text"].strip())
+            if transcript:
+                st.success(
+                    "Successfully fetched transcript with language specification")
+                return transcript
+        except Exception as e:
+            error_messages.append(
+                f"Language specification method failed: {str(e)}")
+            st.warning(f"Language specification method failed: {str(e)}")
 
-        # Join transcript segments with proper spacing
-        transcript = " ".join(
-            entry["text"].strip()
-            for entry in transcript_list
-            if entry["text"].strip()
-        )
+        # Method 3: Try with auto-generated captions
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            auto_transcript = transcript_list.find_transcript(['en'])
+            if not auto_transcript:
+                auto_transcript = transcript_list.find_generated_transcript([
+                                                                            'en-US', 'en'])
 
-        if not transcript.strip():
-            raise ValueError("Empty transcript after processing")
+            if auto_transcript:
+                transcript_data = auto_transcript.fetch()
+                transcript = " ".join(entry["text"].strip(
+                ) for entry in transcript_data if entry["text"].strip())
+                if transcript:
+                    st.success(
+                        "Successfully fetched transcript using auto-generated captions")
+                    return transcript
+        except Exception as e:
+            error_messages.append(
+                f"Auto-generated captions method failed: {str(e)}")
+            st.warning(f"Auto-generated captions method failed: {str(e)}")
 
-        st.success("Successfully fetched transcript")
-        return transcript
+        # Method 4: Try using YoutubeLoader from LangChain as fallback
+        try:
+            loader = YoutubeLoader.from_youtube_url(
+                url, add_video_info=True, language=["en", "en-US"]
+            )
+            docs = loader.load()
+            if docs and docs[0].page_content:
+                st.success(
+                    "Successfully fetched transcript using LangChain YoutubeLoader")
+                return docs[0].page_content
+        except Exception as e:
+            error_messages.append(
+                f"LangChain YoutubeLoader method failed: {str(e)}")
+            st.warning(f"LangChain YoutubeLoader method failed: {str(e)}")
+
+        # Method 5: Last resort - use metadata as a minimal fallback
+        try:
+            metadata = fetch_youtube_metadata(video_id)
+            if metadata and 'title' in metadata:
+                fallback_text = f"Video Title: {metadata.get('title', '')}\n"
+                fallback_text += f"Author: {metadata.get('author_name', '')}\n"
+                fallback_text += f"Description: {metadata.get('description', 'No description available.')}\n"
+                fallback_text += "\nNOTE: This is metadata only as transcript could not be retrieved."
+
+                st.warning(
+                    "Could not retrieve transcript. Using video metadata as fallback.")
+                return fallback_text
+        except Exception as e:
+            error_messages.append(f"Metadata fallback method failed: {str(e)}")
+            st.warning(f"Metadata fallback method failed: {str(e)}")
+
+        # If we got here, all methods failed
+        error_detail = "\n".join(error_messages)
+        st.error(
+            f"All transcript fetching methods failed. Details:\n{error_detail}")
+
+        # Return a minimal fallback with just the video ID to prevent complete failure
+        return f"Failed to retrieve transcript for video ID: {video_id}. This video may have disabled captions or requires authentication."
 
     except Exception as e:
         st.error(f"Error fetching transcript: {str(e)}")
-        raise Exception(f"Failed to fetch transcript: {str(e)}")
+        # Return minimal information instead of raising an exception
+        return f"Error processing video: {str(e)}"
 
 
 def prepare_rag_if_needed(state: AgentState) -> AgentState:

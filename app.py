@@ -18,7 +18,6 @@ from langchain_core.messages import (
 )
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from youtube_transcript_api import YouTubeTranscriptApi
 from langchain_community.vectorstores import Qdrant
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -147,83 +146,49 @@ def fetch_youtube_metadata(video_id: str) -> dict:
 
 
 def fetch_transcript(url: str) -> str:
-    """Fetch transcript from YouTube video"""
+    """Fetch transcript from YouTube video using LangChain's YoutubeLoader"""
     try:
         video_id = get_youtube_id(url)
         st.info(f"Fetching transcript for video ID: {video_id}")
 
-        # Log more details for debugging in Streamlit Cloud
+        # Log details for debugging
         st.write(f"YouTube URL: {url}")
         st.write(f"Extracted Video ID: {video_id}")
 
-        transcript = ""
-        error_messages = []
-
-        # Method 1: Direct transcript API
-        try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-            transcript = " ".join(entry["text"].strip(
-            ) for entry in transcript_list if entry["text"].strip())
-            if transcript:
-                st.success(
-                    "Successfully fetched transcript using direct method")
-                return transcript
-        except Exception as e:
-            error_messages.append(f"Direct method failed: {str(e)}")
-            st.warning(f"Direct transcript method failed: {str(e)}")
-
-        # Method 2: Try with language specification
-        try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(
-                video_id, languages=['en-US', 'en'])
-            transcript = " ".join(entry["text"].strip(
-            ) for entry in transcript_list if entry["text"].strip())
-            if transcript:
-                st.success(
-                    "Successfully fetched transcript with language specification")
-                return transcript
-        except Exception as e:
-            error_messages.append(
-                f"Language specification method failed: {str(e)}")
-            st.warning(f"Language specification method failed: {str(e)}")
-
-        # Method 3: Try with auto-generated captions
-        try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            auto_transcript = transcript_list.find_transcript(['en'])
-            if not auto_transcript:
-                auto_transcript = transcript_list.find_generated_transcript([
-                                                                            'en-US', 'en'])
-
-            if auto_transcript:
-                transcript_data = auto_transcript.fetch()
-                transcript = " ".join(entry["text"].strip(
-                ) for entry in transcript_data if entry["text"].strip())
-                if transcript:
-                    st.success(
-                        "Successfully fetched transcript using auto-generated captions")
-                    return transcript
-        except Exception as e:
-            error_messages.append(
-                f"Auto-generated captions method failed: {str(e)}")
-            st.warning(f"Auto-generated captions method failed: {str(e)}")
-
-        # Method 4: Try using YoutubeLoader from LangChain as fallback
+        # Method 1: Use LangChain's YoutubeLoader (primary method)
         try:
             loader = YoutubeLoader.from_youtube_url(
-                url, add_video_info=True, language=["en", "en-US"]
+                url,
+                add_video_info=True,
+                language=["en", "en-US"],
             )
             docs = loader.load()
+
             if docs and docs[0].page_content:
+                transcript = docs[0].page_content
+                video_info = ""
+
+                # Extract video metadata if available
+                if hasattr(docs[0], 'metadata') and docs[0].metadata:
+                    meta = docs[0].metadata
+                    if 'title' in meta:
+                        video_info += f"Title: {meta['title']}\n"
+                    if 'author' in meta:
+                        video_info += f"Author: {meta['author']}\n"
+                    if 'publish_date' in meta:
+                        video_info += f"Published: {meta['publish_date']}\n"
+
+                # Combine metadata with transcript if available
+                if video_info:
+                    transcript = f"{video_info}\n\n{transcript}"
+
                 st.success(
                     "Successfully fetched transcript using LangChain YoutubeLoader")
-                return docs[0].page_content
+                return transcript
         except Exception as e:
-            error_messages.append(
-                f"LangChain YoutubeLoader method failed: {str(e)}")
             st.warning(f"LangChain YoutubeLoader method failed: {str(e)}")
 
-        # Method 5: Last resort - use metadata as a minimal fallback
+        # Method 2: Fallback to metadata if transcript fails
         try:
             metadata = fetch_youtube_metadata(video_id)
             if metadata and 'title' in metadata:
@@ -236,20 +201,15 @@ def fetch_transcript(url: str) -> str:
                     "Could not retrieve transcript. Using video metadata as fallback.")
                 return fallback_text
         except Exception as e:
-            error_messages.append(f"Metadata fallback method failed: {str(e)}")
             st.warning(f"Metadata fallback method failed: {str(e)}")
 
         # If we got here, all methods failed
-        error_detail = "\n".join(error_messages)
         st.error(
-            f"All transcript fetching methods failed. Details:\n{error_detail}")
-
-        # Return a minimal fallback with just the video ID to prevent complete failure
+            f"All transcript fetching methods failed for video ID: {video_id}")
         return f"Failed to retrieve transcript for video ID: {video_id}. This video may have disabled captions or requires authentication."
 
     except Exception as e:
         st.error(f"Error fetching transcript: {str(e)}")
-        # Return minimal information instead of raising an exception
         return f"Error processing video: {str(e)}"
 
 

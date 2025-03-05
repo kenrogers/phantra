@@ -12,7 +12,7 @@ streamlit>=1.31.0
 qdrant-client>=1.7.0
 
 # Text processing and utilities
-youtube-transcript-api>=0.6.1
+# youtube-transcript-api is no longer directly used, but LangChain's YoutubeLoader depends on it
 tiktoken>=0.5.2
 typing-extensions>=4.9.0
 requests>=2.31.0

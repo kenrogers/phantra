@@ -55,6 +55,12 @@ I will build with the following stack:
 - 🛎️ **Serving**: Streamlit and HuggingFace
   _Provides easy deployment and hosting for both our application and fine-tuned models._
 
+**Agentic Reasoning:** The primary agentic role in Terrapin will be in the writing and editing workflow. This workflow entails the write drafting the initial LinkedIn posts and the editor refining them. The supervisor determines whether or not they then need another round of writing and revision or if they are ready for publishing.
+
+There is a writing agent and an editing agent, the supervisor agent is responsible for passing the content back and forth between these two until it determines the content is ready to publish.
+
+In addition to the writing/editing flow, Terrapin also needs to decide which of the provided LinkedIn templates would fit best with each insight extracted from the YouTube video. There is a dedicated agent for this process, which will ingest the LinkedIn post templates, compare them to the insights passed to it from the insight extractor agent, and then assign each insight a template to pass to the writer.
+
 # Task 3: Dealing with the Data
 
 <aside>
@@ -67,6 +73,10 @@ Task 3: Collect data for (at least) RAG and choose (at least) one external API
 I’ve identified a list of 160 high-performing LinkedIn posts we can use as example posts to pull from so we know our agent is writing high-quality content.
 
 In addition to the templates, each YouTube transcript passed in by the user will serve as the primary data source for the LinkedIn post generation. I’m using the YouTube Transcript API to get this transcript.
+
+The templates are stored as static data in a markdown file. There is a dedicated agent that is responsible for looking through these templates and comparing them to the insights passed to it from another agent. The agent will then assign a template from this list to each insight depending on what format fits the best and hand it off to the writer agent.
+
+In order to get these insights, we are using LangChain's YouTube transcript loader and passing in the given URL in order to extract the transcript. The insight extractor agent will then read through the transcript and choose 7 key insights to use as the foundation for the posts.
 
 For chunking strategy I am using a standard recursive character splitter in order to get to prototype quickly. I may experiment with semantic chunking to see if it improves metrics.
 
@@ -92,16 +102,35 @@ Task 3: Generate a synthetic test data set to baseline an initial evaluation wit
 
 </aside>
 
-For this evaluation, I was specifically evaluating the portion of the pipeline where we are assessing the agent’s ability to accurately extract information from the YT transcript
+For this evaluation, I was specifically evaluating the portion of the pipeline where we are assessing the agent’s ability to accurately extract information from the YT transcript.
 
 | Metric                       | Value  |
 | ---------------------------- | ------ |
-| Context Recall               | 0.94   |
-| Faithfulness                 | 0.9373 |
-| Factual Correctness          | 0.6640 |
-| Answer Relevancy             | 0.9729 |
-| Context Entity Recall        | 0.4447 |
-| Noise Sensitivity (Relevant) | 0.2321 |
+| Context Recall               | 0.8000 |
+| Context Precision            | 0.7389 |
+| Faithfulness                 | 0.8755 |
+| Factual Correctness          | 0.3990 |
+| Response Relevancy           | 0.8747 |
+| Context Entity Recall        | 0.3252 |
+| Noise Sensitivity (Relevant) | 0.3848 |
+
+We can learn several things from studying these metrics.
+
+Our context recall is very high, this means that we are able to successfully retrieve the chunks that we need to from our transcript, we aren't leaving anything important out.
+
+Our faithfulness is also pretty high, so our answers are factually consistent.
+
+Factual correctness was included in order to make sure that our agent is not making up random insights that are not included in the transcript. This metric indicates we may need to adjust some things here in order to tone down the hallucinations or creativity of the LLM.
+
+Response relevancy is another indicator that the agent is not inventing insights that were not intended by the speaker, and it performed well in this category.
+
+Entity recall is also pretty low, but I am unsure of the level of usefulness of this metric for our use case, since it is less about purely pulling facts and more about transforming language without inventing things the speaker did not intend.
+
+Noise sensitivity is pretty good, although could be improved. This is another indication that the LLM is likely inventing some insights on its own that the speaker did not originally say.
+
+Overall there is a lot of room for improvement here on making sure the agent is not trying too hard to be clever or come up with its own insights and instead focuses on simply restructuring and formatting knowledge gleaned from the video. This will likely involve some extensive reworking to the prompts.
+
+It's a bit nuanced as we are looking to reformat insights from a video, rather than directly retrieve factual information, but the metrics do indicate the LLM is taking too much liberty in crafting its own content.
 
 # Task 6: Fine-Tuning Open-Source Embeddings
 
@@ -123,16 +152,33 @@ Task 7: Assess the performance of the fine-tuned agentic RAG application
 
 </aside>
 
+Evals were performed in this notebook: https://colab.research.google.com/drive/1TZX2XfqKFaOfNGIIgNuuU_7caZ9B-fXx#scrollTo=VD-It41p47dj
+
+### Original Metrics
+
+| Metric                       | Value  |
+| ---------------------------- | ------ |
+| Context Recall               | 0.8000 |
+| Context Precision            | 0.7389 |
+| Faithfulness                 | 0.8755 |
+| Factual Correctness          | 0.3990 |
+| Response Relevancy           | 0.8747 |
+| Context Entity Recall        | 0.3252 |
+| Noise Sensitivity (Relevant) | 0.3848 |
+
+### Fine Tuned Metrics
+
 | Metric                       | Value  |
 | ---------------------------- | ------ |
 | Context Recall               | 0.8014 |
+| Context Precision            | 0.7494 |
 | Faithfulness                 | 0.8733 |
 | Factual Correctness          | 0.5900 |
-| Answer Relevancy             | 0.9673 |
+| Response Relevancy           | 0.9673 |
 | Context Entity Recall        | 0.3165 |
 | Noise Sensitivity (Relevant) | 0.2037 |
 
-Fine tuned embedding performed worse in every metric except noise. Unsure if this is because of the model I chose or something else.
+On a second run of the evaluations, the metrics ended up being pretty similar.
 
 In hindsight I don’t think the approach used here is necessarily the correct one. I fine tuned my embedding model on a specific transcript, but the application will be used by many users all with different transcript. Some open questions:
 

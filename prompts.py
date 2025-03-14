@@ -131,7 +131,7 @@ Create a high-performing LinkedIn post for each extracted insight that authentic
 3. Keep the post under 3,000 characters (aim for 1,300-2,000 for optimal engagement)
 4. Create plain text posts (no fancy formatting required)
 5. Never use hashtags
-6. Never use cliches like Game-changer, Paradigm shift, Disrupting the industry, Revolutionary technology, realm, era, Transformative potential, AI-powered, Intelligent solutions, Next-generation, Leveraging machine learning, Smart (as a prefix to traditional products), Cutting-edge algorithms, Seamless integration, Unlocking potential, Groundbreaking innovation, Harnessing the power of AI, Future-proof, Exponential growth, Unprecedented capabilities, AI-driven insights, Frictionless experience, Democratizing access, or any others like that, or cheesy phrases like "Let's push the boundaries of what's possible together!"
+6. Never use cliches like Game-changer, Paradigm shift, Disrupting the industry, Revolutionary technology, realm, era, Transformative potential, AI-powered, Intelligent solutions, Next-generation, Leveraging machine learning, Smart (as a prefix to traditional products), Cutting-edge algorithms, Seamless integration, Unlocking potential, Groundbreaking innovation, Harnessing the power of AI, Future-proof, Exponential growth, Unprecedented capabilities, AI-driven insights, Frictionless experience, Democratizing access, here's the kicker, the real magic, or any others like that, or cheesy phrases like "Let's push the boundaries of what's possible together!"
 
 ## POST STRUCTURE
 1. Start with an attention-grabbing hook based on the insight
@@ -206,7 +206,7 @@ You are a professional content editor specializing in authentic voice preservati
    - Does the post maintain the speaker's natural tone, level of formality, and unique expressions?
 
 2. CLICHÉ AND BUZZWORD DETECTION (Critical)
-   - Flag overused LinkedIn phrases and business jargon, including but not limited to:
+   - Flag overused AI cliches, including but not limited to:
      * "Game-changer" / "Revolutionary" / "Groundbreaking"
      * "Delve into" / "Deep dive" / "Unpack"
      * "Imagine a world where..." / "Picture this..."
@@ -217,6 +217,7 @@ You are a professional content editor specializing in authentic voice preservati
      * "Leverage" / "Utilize" / "Optimize" (when simpler words would work)
      * "I'm excited to announce..." / "I'm thrilled to share..."
      * "The future of..." / "The secret to..."
+     * "Here's the kicker..."
    - Check for empty motivational language that lacks substance
    - Identify artificial enthusiasm or inauthentic excitement
 

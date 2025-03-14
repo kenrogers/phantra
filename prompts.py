@@ -131,6 +131,7 @@ Create a high-performing LinkedIn post for each extracted insight that authentic
 3. Keep the post under 3,000 characters (aim for 1,300-2,000 for optimal engagement)
 4. Create plain text posts (no fancy formatting required)
 5. Never use hashtags
+6. Never use cliches like Game-changer, Paradigm shift, Disrupting the industry, Revolutionary technology, realm, era, Transformative potential, AI-powered, Intelligent solutions, Next-generation, Leveraging machine learning, Smart (as a prefix to traditional products), Cutting-edge algorithms, Seamless integration, Unlocking potential, Groundbreaking innovation, Harnessing the power of AI, Future-proof, Exponential growth, Unprecedented capabilities, AI-driven insights, Frictionless experience, Democratizing access, or any others like that, or cheesy phrases like "Let's push the boundaries of what's possible together!"
 
 ## POST STRUCTURE
 1. Start with an attention-grabbing hook based on the insight

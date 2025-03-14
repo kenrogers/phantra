@@ -37,6 +37,9 @@ def main():
         os.environ["LANGSMITH_API_KEY"] = st.secrets.langsmith.api_key
         os.environ["LANGSMITH_ENDPOINT"] = st.secrets.langsmith.endpoint
 
+    # Debug mode toggle
+    debug_mode = st.sidebar.checkbox("Debug Mode", value=False)
+
     # User context inputs
     if 'context_saved' not in st.session_state:
         st.session_state.context_saved = False
@@ -88,7 +91,7 @@ def main():
                 initial_state = AgentState(
                     transcript=transcript,
                     user_context=user_context,
-                    voice_analysis={},
+                    voice_analysis="",
                     insights=[],
                     draft_posts=[],
                     final_posts=[],
@@ -96,7 +99,8 @@ def main():
                     revision_count=0,
                     status=status,
                     next_step=None,
-                    rag_info={}
+                    rag_info={},
+                    debug_info=""
                 )
 
                 # Create workflow
@@ -124,7 +128,28 @@ def main():
             }
 
             posts = generate_linkedin_posts(youtube_url, user_context)
-            st.session_state.generated_posts = posts
+
+            # Display debug information if enabled
+            if debug_mode and "final_state" in st.session_state:
+                with st.expander("Debug Information", expanded=True):
+                    st.markdown("### Debug Log")
+                    st.text(st.session_state.final_state.get(
+                        "debug_info", "No debug info available"))
+
+                    st.markdown("### State Information")
+                    st.markdown(
+                        f"- Insights: {len(st.session_state.final_state.get('insights', []))} extracted")
+                    st.markdown(
+                        f"- Draft Posts: {len(st.session_state.final_state.get('draft_posts', []))} created")
+                    st.markdown(
+                        f"- Final Posts: {len(st.session_state.final_state.get('final_posts', []))} generated")
+                    st.markdown(
+                        f"- Editing Iterations: {st.session_state.final_state.get('editing_iterations', 0)}")
+
+                    if "editing_note" in st.session_state.final_state:
+                        st.warning(
+                            st.session_state.final_state["editing_note"])
+
             st.success(f"Generated {len(posts)} LinkedIn posts!")
 
             for i, post in enumerate(posts, 1):
@@ -139,6 +164,12 @@ def main():
 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
+
+            # Show debug info even on error if debug mode is enabled
+            if debug_mode and "final_state" in st.session_state:
+                with st.expander("Debug Information (Error State)", expanded=True):
+                    st.text(st.session_state.final_state.get(
+                        "debug_info", "No debug info available"))
 
     # Show app info in sidebar
     st.sidebar.markdown("## About")

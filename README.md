@@ -34,7 +34,7 @@ There are several pain points involved in this process:
 
 # Task 2: Propose a Solution
 
-The solution is Terrapin: An AI-powered content creation assistant that transforms educational video content into engaging, platform-optimized written content while preserving the creator's authentic voice and teaching style.
+The solution is Phantra: An AI-powered content creation assistant that transforms educational video content into engaging, platform-optimized written content while preserving the creator's authentic voice and teaching style.
 
 I will build with the following stack:
 
@@ -55,11 +55,11 @@ I will build with the following stack:
 - 🛎️ **Serving**: Streamlit and HuggingFace
   _Provides easy deployment and hosting for both our application and fine-tuned models._
 
-**Agentic Reasoning:** The primary agentic role in Terrapin will be in the writing and editing workflow. This workflow entails the write drafting the initial LinkedIn posts and the editor refining them. The supervisor determines whether or not they then need another round of writing and revision or if they are ready for publishing.
+**Agentic Reasoning:** The primary agentic role in Phantra will be in the writing and editing workflow. This workflow entails the write drafting the initial LinkedIn posts and the editor refining them. The supervisor determines whether or not they then need another round of writing and revision or if they are ready for publishing.
 
 There is a writing agent and an editing agent, the supervisor agent is responsible for passing the content back and forth between these two until it determines the content is ready to publish.
 
-In addition to the writing/editing flow, Terrapin also needs to decide which of the provided LinkedIn templates would fit best with each insight extracted from the YouTube video. There is a dedicated agent for this process, which will ingest the LinkedIn post templates, compare them to the insights passed to it from the insight extractor agent, and then assign each insight a template to pass to the writer.
+In addition to the writing/editing flow, Phantra also needs to decide which of the provided LinkedIn templates would fit best with each insight extracted from the YouTube video. There is a dedicated agent for this process, which will ingest the LinkedIn post templates, compare them to the insights passed to it from the insight extractor agent, and then assign each insight a template to pass to the writer.
 
 # Task 3: Dealing with the Data
 
@@ -91,7 +91,7 @@ Task 2: Build an end-to-end RAG application using an industry-standard open-sour
 
 Here’s an end to end prototype of this application built with and deployed to Streamlit
 
-https://terrapin-prototype.streamlit.app/
+https://phantra.streamlit.app/
 
 # Task 5: Creating a Golden Test Data Set
 
@@ -190,13 +190,13 @@ Outside of this, the biggest area for improvement I see is in the prompt writing
 
 ===
 
-# Terrapin 🐢
+# Phantra 👻
 
 Turn your YouTube videos into engaging LinkedIn content, automagically.
 
 ## A Note on the Actual Content
 
-Terrapin is in the very early prototype stages. The content it generates is not yet very good. I'll be working on improvements and refinements to the process but at the moment I would not recommend using this LinkedIn content as-is.
+Phantra is in the very early prototype stages. The content it generates is not yet very good. I'll be working on improvements and refinements to the process but at the moment I would not recommend using this LinkedIn content as-is.
 
 ## Features
 
@@ -247,7 +247,7 @@ streamlit run app.py
 
 ## How It Works
 
-Terrapin processes videos through several stages:
+Phantra processes videos through several stages:
 
 1. **Transcript Extraction**: Pulls the video transcript using YouTube's API
 2. **Content Analysis**: Uses either direct processing or RAG based on transcript length

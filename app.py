@@ -16,7 +16,7 @@ load_dotenv()
 
 
 def main():
-    st.title("Terrapin")
+    st.title("Phantra")
     st.write("Turn your YouTube videos into engaging LinkedIn content. Automagically.")
 
     # Sidebar for OpenAI API key
